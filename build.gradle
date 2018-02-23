@@ -14,7 +14,7 @@ plugins {
 apply plugin: 'java'
 
 version = '0.1.0-SNAPSHOT'
-group = 'com.mbelling'
+group = 'com.github.mbelling'
 
 sourceSets {
     main {

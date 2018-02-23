@@ -1,9 +1,9 @@
-package com.mbelling.ws281x;
+package com.github.mbelling.ws281x;
 
-import com.mbelling.ws281x.jni.rpi_ws281x;
-import com.mbelling.ws281x.jni.ws2811_channel_t;
-import com.mbelling.ws281x.jni.ws2811_return_t;
-import com.mbelling.ws281x.jni.ws2811_t;
+import com.github.mbelling.ws281x.jni.rpi_ws281x;
+import com.github.mbelling.ws281x.jni.ws2811_channel_t;
+import com.github.mbelling.ws281x.jni.ws2811_return_t;
+import com.github.mbelling.ws281x.jni.ws2811_t;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,8 +13,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.mbelling.ws281x.jni.rpi_ws281xConstants;
-import static com.mbelling.ws281x.jni.rpi_ws281xConstants.WS2811_STRIP_RGB;
+import com.github.mbelling.ws281x.jni.rpi_ws281xConstants;
+import static com.github.mbelling.ws281x.jni.rpi_ws281xConstants.WS2811_STRIP_RGB;
 
 /**
  * Basic class to interface with the rpi_ws281x native library
@@ -83,7 +83,7 @@ public class Ws281xLedStrip {
      * @param brightness  Starting brightness for colors
      * @param pwmChannel  PWM Channel to use
      * @param invert      Whether or not to invert color values
-     * @param stripType   The type of LED Strip {@link com.mbelling.ws281x.jni.rpi_ws281xConstants}
+     * @param stripType   The type of LED Strip {@link com.github.mbelling.ws281x.jni.rpi_ws281xConstants}
      */
     public Ws281xLedStrip( int ledsCount, int gpioPin, int frequencyHz, int dma, int brightness, int pwmChannel, boolean invert, int stripType ) {
         this.ledsCount = ledsCount;
