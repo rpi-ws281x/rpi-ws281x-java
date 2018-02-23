@@ -1,0 +1,16 @@
+
+apply plugin: 'java'
+
+sourceSets {
+    main {
+        java {
+            // Get the generated source from SWIG
+            srcDirs = ['build/generatedSource/java']
+        }
+        resources {
+            // Get the native .so file
+            srcDirs 'build/nativeLib'
+        }
+    }
+}
+
