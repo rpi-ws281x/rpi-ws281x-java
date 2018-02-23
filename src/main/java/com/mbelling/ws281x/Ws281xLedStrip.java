@@ -25,6 +25,10 @@ public class Ws281xLedStrip {
 
     private static final AtomicBoolean loaded = new AtomicBoolean( false );
 
+    static {
+        initializeNative();
+    }
+
     // Settings
     private int ledsCount;
     private int gpioPin;
@@ -159,7 +163,6 @@ public class Ws281xLedStrip {
     }
 
     private void init() {
-        initializeNative();
 
         Runtime.getRuntime().addShutdownHook( new Thread( Ws281xLedStrip.this::destroy, "WS281x Shutdown Handler" ) );
 

@@ -13,7 +13,7 @@ plugins {
 
 apply plugin: 'java'
 
-version = '0.1.0'
+version = '0.1.0-SNAPSHOT'
 group = 'com.mbelling'
 
 sourceSets {
@@ -31,6 +31,7 @@ sourceSets {
 
 dependencies {
     compile 'org.apache.logging.log4j:log4j-api:2.10.0'
+    runtime 'org.apache.logging.log4j:log4j-core:2.10.0'
 }
 
 repositories {
