@@ -1,13 +1,13 @@
 # rpi-ws281x-java
 rpi281x wrapper for Java using SWIG
 
-h4. To build on a raspberry pi
+### To build on a raspberry pi
 
 Run `scripts/createNativeLib.sh` to generate the SWIG java code and generate the libws2811.so native library.
 
 Run `.\gradlew assemble` to compile the java code and create a jar containing the compile class files and the native .so file.
 
-h4. To build from another machine
+### To build from another machine
 
 The machine must be a linux machine, or have a bash-compatible shell like babun, cygwin, or git-bash on windows.
 
