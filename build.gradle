@@ -1,11 +1,26 @@
 
+plugins {
+    id 'nebula.source-jar' version '5.1.0'
+}
+
+plugins {
+    id 'nebula.maven-publish' version '5.1.0'
+}
+
+plugins {
+    id 'nebula.javadoc-jar' version '5.1.0'
+}
+
 apply plugin: 'java'
+
+version = '0.1.0'
+group = 'com.mbelling'
 
 sourceSets {
     main {
         java {
             // Get the generated source from SWIG
-            srcDirs = ['build/generatedSource/java']
+            srcDirs 'build/generatedSource/java'
         }
         resources {
             // Get the native .so file
@@ -14,3 +29,10 @@ sourceSets {
     }
 }
 
+dependencies {
+    compile 'org.apache.logging.log4j:log4j-api:2.10.0'
+}
+
+repositories {
+    jcenter()
+}
