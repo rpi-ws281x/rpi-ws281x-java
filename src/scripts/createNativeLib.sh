@@ -40,7 +40,7 @@ function compileSrc
     SRC="${1}"
     OUT="${2}"
 
-    gcc -shared -fPIC -w -o "${OUT}" -c "${SRC}" -I./ -I{JDK_FULL_PATH}/include
+    gcc -shared -fPIC -w -o "${OUT}" -c "${SRC}" -I./ -I${JDK_FULL_PATH}/include
 }
 
 function programInstalled

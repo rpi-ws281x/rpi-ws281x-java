@@ -63,7 +63,7 @@ public class Ws281xLedStrip {
         // TODO: move to constants file
         this(
                 100,         // leds
-                18,         // pin
+                10,         // Using pin 10 to do SPI, which should allow non-sudo access
                 800000,     // freq hz
                 10,          // dma
                 255,        // brightness
