@@ -6,7 +6,6 @@ apply plugin: 'java'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
-version = '1.0.0-SNAPSHOT'
 group = 'com.github.mbelling'
 
 sourceSets {
