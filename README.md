@@ -16,5 +16,5 @@ Run `./build-native-on-remote-pi.sh`.  This will copy the project to the pi, and
 Attribution
 -----------
 * SWIG generation and native lib compiling based on scripts at https://github.com/limpygnome/build-tv
-* build-native-on-remote-pi script based on script at https://github.com/Cacodaimon/rpi\_ws281x4j
+* build-native-on-remote-pi script based on script at https://github.com/Cacodaimon/rpi_ws281x4j
 * Loading JNI native .so file code based on code at https://github.com/mattjlewis/diozero/blob/master/diozero-ws281x-java
