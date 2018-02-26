@@ -11,7 +11,7 @@ Run `./gradlew assemble` to compile the java code and create a jar containing th
 
 The machine must be a linux machine, or have a bash-compatible shell like babun, cygwin, or git-bash on windows.
 
-Run `./build-native-on-remote-pi.sh`.  This will copy the project to the pi, and run the script in the previous section, and copy the .so library back to the dev machine. After that, run .\gradlew assemble to compile the java code and create a jar containing the compile class files and the native .so file.  The easiest way to use the jar would be to publish it to a maven repository, or your local .m2 repository using `./gradlew publishToMavenLocal` and use maven coordinates in your maven or gradle project. 
+Run `./build-native-on-remote-pi.sh`.  This will copy the project to the pi, and run the script in the previous section, and copy the .so library back to the dev machine. After that, run `.\gradlew assemble` to compile the java code and create a jar containing the compile class files and the native .so file.  The easiest way to use the jar would be to publish it to a maven repository, or your local .m2 repository using `./gradlew publishToMavenLocal` and use maven coordinates in your maven or gradle project. 
 
 Attribution
 -----------
