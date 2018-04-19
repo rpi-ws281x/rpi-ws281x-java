@@ -1,9 +1,6 @@
 package com.github.mbelling.ws281x;
 
-import com.github.mbelling.ws281x.jni.rpi_ws281x;
-import com.github.mbelling.ws281x.jni.ws2811_channel_t;
-import com.github.mbelling.ws281x.jni.ws2811_return_t;
-import com.github.mbelling.ws281x.jni.ws2811_t;
+import com.github.mbelling.ws281x.jni.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,21 +10,17 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.github.mbelling.ws281x.jni.rpi_ws281xConstants;
+import static com.github.mbelling.ws281x.Color.buildColour;
 import static com.github.mbelling.ws281x.jni.rpi_ws281xConstants.WS2811_STRIP_RGB;
 
 /**
  * Basic class to interface with the rpi_ws281x native library
  */
-public class Ws281xLedStrip {
+public class Ws281xLedStrip implements LedStrip {
     private static final Logger LOG = LogManager.getLogger( Ws281xLedStrip.class );
     private static final String LIB_NAME = "ws281x";
 
     private static final AtomicBoolean loaded = new AtomicBoolean( false );
-
-    static {
-        initializeNative();
-    }
 
     // Settings
     private int ledsCount;
@@ -41,6 +34,12 @@ public class Ws281xLedStrip {
 
     private ws2811_t leds;
     private ws2811_channel_t currentChannel;
+
+    private static int getDefaultStripType() {
+        initializeNative();
+
+        return WS2811_STRIP_RGB;
+    }
 
     /**
      * Default constructor with the following settings:
@@ -59,17 +58,15 @@ public class Ws281xLedStrip {
      * @see #Ws281xLedStrip(int, int, int, int, int, int, boolean, int)
      */
     public Ws281xLedStrip() {
-        // Default settings
-        // TODO: move to constants file
         this(
-                100,         // leds
-                10,         // Using pin 10 to do SPI, which should allow non-sudo access
-                800000,     // freq hz
-                10,          // dma
-                255,        // brightness
-                0,          // pwm channel
-                false,       // invert
-                WS2811_STRIP_RGB  // Strip type
+                100,       // leds
+                10,          // Using pin 10 to do SPI, which should allow non-sudo access
+                800000,  // freq hz
+                10,            // dma
+                255,      // brightness
+                0,      // pwm channel
+                false,        // invert
+                getDefaultStripType()    // Strip type
         );
     }
 
@@ -117,6 +114,16 @@ public class Ws281xLedStrip {
     }
 
     /**
+     * Set the color of an individual pixel
+     *
+     * @param pixel The index of the pixel in the strip
+     * @param color The color to set on the pixel
+     */
+    public synchronized void setPixel( int pixel, Color color ) {
+        setPixel( pixel, color.getRed(), color.getGreen(), color.getBlue() );
+    }
+
+    /**
      * Set all LEDs in the strip to one color
      *
      * @param red The red value (0 - 255)
@@ -127,6 +134,15 @@ public class Ws281xLedStrip {
         for ( int i = 0; i < ledsCount; i++ ) {
             setPixel( i, red, green, blue );
         }
+    }
+
+    /**
+     * Set all LEDs in the strip to one color
+     *
+     * @param color The color to set on the strip
+     */
+    public synchronized void setStrip( Color color ) {
+        setStrip(color.getRed(), color.getGreen(), color.getBlue());
     }
 
     /**
@@ -150,13 +166,14 @@ public class Ws281xLedStrip {
                             StandardCopyOption.REPLACE_EXISTING );
                     System.load( path.toString() );
                     loaded.set( true );
+                    LOG.info("Native library loaded");
                 } catch ( IOException e ) {
-                    System.out.println( "Error loading library from classpath: " + e );
-                    e.printStackTrace();
+                    LOG.error( "Error loading library from classpath: ", e );
 
                     // Try load the usual way...
                     System.loadLibrary( LIB_NAME );
                     loaded.set( true );
+                    LOG.info("Native library loaded");
                 }
             }
         }
@@ -230,8 +247,8 @@ public class Ws281xLedStrip {
         }
     }
 
-    private long buildColour( int red, int green, int blue ) {
-        return ( (short) red << 16 ) | ( (short) green << 8 ) | (short) blue;
+    public void setBrightness( int brightness ) {
+        currentChannel.setBrightness( (short) brightness );
     }
 
     public int getLedsCount() {
