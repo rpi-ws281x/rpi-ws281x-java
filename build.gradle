@@ -3,6 +3,7 @@ plugins {
 }
 
 apply plugin: 'java'
+apply plugin: 'maven-publish'
 
 group = 'com.github.mbelling'
 
@@ -45,3 +46,12 @@ artifacts {
     archives sourceJar
     archives javadocJar
 }
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
