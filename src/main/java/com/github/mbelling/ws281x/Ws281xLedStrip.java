@@ -11,7 +11,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.github.mbelling.ws281x.Color.buildColour;
-import static com.github.mbelling.ws281x.jni.rpi_ws281xConstants.WS2811_STRIP_RGB;
 
 /**
  * Basic class to interface with the rpi_ws281x native library
@@ -30,16 +29,11 @@ public class Ws281xLedStrip implements LedStrip {
     private int brightness;
     private int pwmChannel;
     private boolean invert;
-    private int stripType;
+    private LedStripType stripType;
+    private boolean clearOnExit;
 
     private ws2811_t leds;
     private ws2811_channel_t currentChannel;
-
-    private static int getDefaultStripType() {
-        initializeNative();
-
-        return WS2811_STRIP_RGB;
-    }
 
     /**
      * Default constructor with the following settings:
@@ -55,7 +49,7 @@ public class Ws281xLedStrip implements LedStrip {
      * </ul>
      *
      * @see rpi_ws281xConstants
-     * @see #Ws281xLedStrip(int, int, int, int, int, int, boolean, int)
+     * @see #Ws281xLedStrip(int, int, int, int, int, int, boolean, LedStripType, boolean)
      */
     public Ws281xLedStrip() {
         this(
@@ -66,7 +60,8 @@ public class Ws281xLedStrip implements LedStrip {
                 255,      // brightness
                 0,      // pwm channel
                 false,        // invert
-                getDefaultStripType()    // Strip type
+                LedStripType.WS2811_STRIP_RGB,    // Strip type
+                false    // clear on exit
         );
     }
 
@@ -81,8 +76,10 @@ public class Ws281xLedStrip implements LedStrip {
      * @param pwmChannel  PWM Channel to use
      * @param invert      Whether or not to invert color values
      * @param stripType   The type of LED Strip {@link com.github.mbelling.ws281x.jni.rpi_ws281xConstants}
+     * @param clearOnExit Clear LEDs on exit
      */
-    public Ws281xLedStrip( int ledsCount, int gpioPin, int frequencyHz, int dma, int brightness, int pwmChannel, boolean invert, int stripType ) {
+    public Ws281xLedStrip( int ledsCount, int gpioPin, int frequencyHz, int dma, int brightness, int pwmChannel,
+            boolean invert, LedStripType stripType, boolean clearOnExit ) {
         this.ledsCount = ledsCount;
         this.gpioPin = gpioPin;
         this.frequencyHz = frequencyHz;
@@ -91,9 +88,11 @@ public class Ws281xLedStrip implements LedStrip {
         this.pwmChannel = pwmChannel;
         this.invert = invert;
         this.stripType = stripType;
+        this.clearOnExit = clearOnExit;
 
-        LOG.info( "LEDs count: {}, GPIO pin: {}, freq hZ: {}, DMA: {}, brightness: {}, pwm channel: {}, invert: {}",
-                ledsCount, gpioPin, frequencyHz, dma, brightness, pwmChannel, invert
+        LOG.info( "LEDs count: {}, GPIO pin: {}, freq hZ: {}, DMA: {}, brightness: {}, pwm channel: {}, invert: {}, "
+                        + "strip type: {}, clear on exit: {}",
+                ledsCount, gpioPin, frequencyHz, dma, brightness, pwmChannel, invert, stripType, clearOnExit
         );
 
         init();
@@ -181,6 +180,7 @@ public class Ws281xLedStrip implements LedStrip {
 
     private void init() {
 
+        initializeNative();
         Runtime.getRuntime().addShutdownHook( new Thread( Ws281xLedStrip.this::destroy, "WS281x Shutdown Handler" ) );
 
         // Create ref object for pwm channel (?)
@@ -198,13 +198,13 @@ public class Ws281xLedStrip implements LedStrip {
             channel = rpi_ws281x.ws2811_channel_get( leds, i );
 
             // Set all to zero (default)
-            initChannel( channel, 0, 0, 0, false, WS2811_STRIP_RGB );
+            initChannel( channel, 0, 0, 0, false, convertLedTypeToNativeType(stripType) );
         }
 
         // Initialize current channel
         LOG.debug( "Initializing current channel..." );
 
-        initChannel( currentChannel, ledsCount, gpioPin, brightness, invert, stripType );
+        initChannel( currentChannel, ledsCount, gpioPin, brightness, invert, convertLedTypeToNativeType(stripType) );
 
         // Initialize LED driver/controller
         LOG.debug( "Initializing driver..." );
@@ -227,6 +227,10 @@ public class Ws281xLedStrip implements LedStrip {
     private synchronized void destroy() {
         try {
             if ( leds != null ) {
+                if (clearOnExit) {
+                    setStrip(0, 0, 0);
+                    render();
+                }
                 rpi_ws281x.ws2811_fini( leds );
                 leds.delete();
                 leds = null;
@@ -249,6 +253,37 @@ public class Ws281xLedStrip implements LedStrip {
 
     public void setBrightness( int brightness ) {
         currentChannel.setBrightness( (short) brightness );
+    }
+
+    private int convertLedTypeToNativeType(LedStripType stripType) {
+        switch (stripType) {
+            case SK6812_STRIP_RGBW:
+                return rpi_ws281xConstants.SK6812_STRIP_RGBW;
+            case SK6812_STRIP_RBGW:
+                return rpi_ws281xConstants.SK6812_STRIP_RBGW;
+            case SK6812_STRIP_GRBW:
+                return rpi_ws281xConstants.SK6812_STRIP_GRBW;
+            case SK6812_STRIP_GBRW:
+                return rpi_ws281xConstants.SK6812_STRIP_GBRW;
+            case SK6812_STRIP_BRGW:
+                return rpi_ws281xConstants.SK6812_STRIP_BRGW;
+            case SK6812_STRIP_BGRW:
+                return rpi_ws281xConstants.SK6812_STRIP_BGRW;
+            case WS2811_STRIP_RGB:
+                return rpi_ws281xConstants.WS2811_STRIP_RGB;
+            case WS2811_STRIP_RBG:
+                return rpi_ws281xConstants.WS2811_STRIP_RBG;
+            case WS2811_STRIP_GRB:
+                return rpi_ws281xConstants.WS2811_STRIP_GRB;
+            case WS2811_STRIP_GBR:
+                return rpi_ws281xConstants.WS2811_STRIP_GBR;
+            case WS2811_STRIP_BRG:
+                return rpi_ws281xConstants.WS2811_STRIP_BRG;
+            case WS2811_STRIP_BGR:
+                return rpi_ws281xConstants.WS2811_STRIP_BGR;
+            default:
+                throw new IllegalStateException("Unknown LED strip type: " + stripType);
+        }
     }
 
     public int getLedsCount() {
@@ -279,7 +314,7 @@ public class Ws281xLedStrip implements LedStrip {
         return invert;
     }
 
-    public int getStripType() {
+    public LedStripType getStripType() {
         return stripType;
     }
 }
