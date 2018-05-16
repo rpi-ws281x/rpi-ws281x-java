@@ -19,8 +19,9 @@ JDK_FULL_PATH="${JDK_PATH}/${JDK_DIR}"
 GCC_INCLUDES="-I${JDK_FULL_PATH}/include -I${JDK_FULL_PATH}/include/linux"
 
 # Relative dir names for input/output
-OUTPUT="build"
-SWIG_SRC="src/swig"
+BASE_DIR="$(dirname "$0")/../.."
+OUTPUT="${BASE_DIR}/build"
+SWIG_SRC="${BASE_DIR}/src/swig"
 SWIG_OUT="${OUTPUT}/swig"
 SWIG_OUT_JAVA="${OUTPUT}/generatedSource/java/com/github/mbelling/ws281x/jni"
 SWIG_PACKAGE_NAME="com.github.mbelling.ws281x.jni"
