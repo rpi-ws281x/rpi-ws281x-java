@@ -87,7 +87,7 @@ git clone https://github.com/jgarff/rpi_ws281x.git ${NATIVE_SRC}
 # At the time of this writing this repository does not tag versions, so checking out at a specific commit so we build a consistent library
 echo "Checking out specific revision..."
 pushd ${NATIVE_SRC}
-git checkout 3a01777f51bebe412a23350f842fec7b43c00c5a
+git checkout caa135d2216400c8f7d4aaff956ba5347a4463ef
 popd
 
 # Create all the required dirs
