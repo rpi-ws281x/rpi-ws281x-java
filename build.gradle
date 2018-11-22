@@ -4,6 +4,7 @@ plugins {
 
 apply plugin: 'java'
 apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 group = 'com.github.mbelling'
 
@@ -47,11 +48,106 @@ artifacts {
     archives javadocJar
 }
 
+signing {
+    sign configurations.archives
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            customizePom(pom)
+            groupId project.group
+            artifactId project.name
+            version project.version
             from components.java
+            pom.withXml {
+                def pomFile = file("${project.buildDir}/generated-pom.xml")
+                writeTo(pomFile)
+                def pomAscFile = signing.sign(pomFile).signatureFiles[0]
+                artifact(pomAscFile) {
+                    classifier = null
+                    extension = 'pom.asc'
+                }
+            }
+            artifact(sourceJar) {
+                classifier = 'sources'
+            }
+            artifact(javadocJar) {
+                classifier = 'javadoc'
+            }
+            // create the signed artifacts
+            project.tasks.signArchives.signatureFiles.each {
+                artifact(it) {
+                    def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
+                    if (matcher.find()) {
+                        classifier = matcher.group(1)
+                    } else {
+                        classifier = null
+                    }
+                    extension = 'jar.asc'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+            credentials {
+                username sonatypeUsername
+                password sonatypePassword
+            }
         }
     }
 }
-
+def customizePom(pom) {
+    pom.withXml {
+        def root = asNode()
+        // eliminate test-scoped dependencies (no need in maven central POMs)
+        root.dependencies.removeAll { dep ->
+            dep.scope == "test"
+        }
+        // add all items necessary for maven central publication
+        root.children().last() + {
+            resolveStrategy = Closure.DELEGATE_FIRST
+            description 'Java wrapper for rpi_ws281x library using SWIG'
+            name 'rpi-ws281x-java'
+            url 'https://github.com/rpi-ws281x/rpi-ws281x-java'
+            organization {
+                name 'rpi-ws281x'
+                url 'https://github.com/rpi-ws281x/'
+            }
+            issueManagement {
+                system 'GitHub'
+                url 'https://github.com/rpi-ws281x/rpi-ws281x-java/issues'
+            }
+            licenses {
+                license {
+                    name 'Apache License 2.0'
+                    url 'https://github.com/rpi-ws281x/rpi-ws281x-java/blob/master/LICENSE'
+                    distribution 'repo'
+                }
+            }
+            scm {
+                url 'https://github.com/rpi-ws281x/rpi-ws281x-java'
+                connection 'scm:git:git://github.com/rpi-ws281x/rpi-ws281x-java.git'
+                developerConnection 'scm:git:ssh://git@github.com:rpi-ws281x/rpi-ws281x-java.git'
+            }
+            developers {
+                developer {
+                    name "Matthew Bellinger"
+                }
+            }
+        }
+    }
+}
+model {
+    tasks.generatePomFileForMavenJavaPublication {
+        destination = file("$buildDir/generated-pom.xml")
+    }
+    tasks.publishMavenJavaPublicationToMavenLocal {
+        dependsOn project.tasks.signArchives
+    }
+    tasks.publishMavenJavaPublicationToMavenRepository {
+        dependsOn project.tasks.signArchives
+    }
+}
