@@ -149,7 +149,7 @@ public class Ws281xLedStrip implements LedStrip {
      *
      * @return The color of the pixel as a long
      */
-    public synchronized void getPixel( int pixel ) {
+    public synchronized long getPixel( int pixel ) {
         if ( leds != null ) {
             return rpi_ws281x.ws2811_led_get(currentChannel, pixel);
         }
