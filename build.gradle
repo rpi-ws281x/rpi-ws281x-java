@@ -1,11 +1,22 @@
 plugins {
     id 'net.researchgate.release' version '2.6.0'
+    id 'org.hidetake.ssh' version '2.11.2'
     id 'java'
     id 'maven-publish'
     id 'signing'
 }
 java {
     sourceCompatibility = JavaVersion.VERSION_17
+}
+
+remotes {
+    rasPi {
+        host = project.findProperty("RasPiHost")
+        user = project.findProperty("RasPiUser")
+        password = project.findProperty("RasPiPassword")
+        fileTransfer = "scp"
+        jschLog = true
+    }
 }
 
 apply plugin: 'java'
@@ -38,6 +49,68 @@ dependencies {
     testImplementation 'junit:junit:4.13.1'
 }
 
+def remoteBuildDir = project.findProperty("RasPiRemoteBuildDir")
+tasks.register('buildNativeOnPi') {
+    description = 'build native lib on remote pi'
+    doLast {
+        ssh.run {
+            session(remotes.rasPi) {
+                println("[buildNativeOnPi] - Copy all files...")
+                put from: './src/', into: remoteBuildDir
+
+                //remove windows line breaks
+                execute "cd $remoteBuildDir; tr -d '\\r' <src/scripts/createNativeLib.sh >src/scripts/createNativeLib.sh"
+                execute "cd $remoteBuildDir; chmod +x src/scripts/createNativeLib.sh"
+                //now build
+                println("[buildNativeOnPi] - Execute build script...")
+                execute "cd $remoteBuildDir; touch logs.txt; bash src/scripts/createNativeLib.sh > logs.txt 2>&1"
+
+                println("[buildNativeOnPi] - Copy generated artifacts back")
+                get from: "$remoteBuildDir/build", into: '.'
+
+                println("[buildNativeOnPi] - All Done! Try ./gradlew assemble")
+            }
+        }
+
+    }
+}
+tasks.register('finalizeBuildNative') {
+    doLast {
+        ssh.run {
+            session(remotes.rasPi) {
+                get from: "$remoteBuildDir/logs.txt", into: 'build/'
+            }
+            println("The captured log output from 'createNativeLib.sh'...")
+            def logFile = project.file("build/logs.txt")
+
+            if (logFile.exists()) {
+                // Read and print the log file contents
+                logFile.eachLine { line ->
+                    println line
+                }
+            } else {
+                println "Log file not found."
+            }
+        }
+
+    }
+}
+
+tasks.buildNativeOnPi.finalizedBy('finalizeBuildNative')
+
+
+tasks.register('checkSharedLibrary') {
+    description = "Check if the shared library exists in the desired location"
+
+    doLast {
+        def libraryFile = file('/build/nativeLib/libws281x.so')
+
+        if (!libraryFile.exists()) {
+            throw new GradleException("Shared library is missing in the desired location.")
+        }
+    }
+}
+
 tasks.register('sourceJar', Jar) {
     from sourceSets.main.allJava
 }
@@ -46,6 +119,8 @@ tasks.register('javadocJar', Jar) {
     dependsOn javadoc
     from javadoc.destinationDir
 }
+
+build.dependsOn checkSharedLibrary
 
 artifacts {
     archives jar
@@ -104,6 +179,7 @@ publishing {
         }
     }
 }
+
 def customizePom(pom) {
     pom.withXml {
         def root = asNode()
@@ -145,6 +221,7 @@ def customizePom(pom) {
         }
     }
 }
+
 model {
     tasks.generatePomFileForMavenJavaPublication {
         destination = layout.buildDirectory.file("generated-pom.xml")
