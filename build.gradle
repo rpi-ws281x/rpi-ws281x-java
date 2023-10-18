@@ -16,6 +16,7 @@ remotes {
         password = project.findProperty("RasPiPassword")
         fileTransfer = "scp"
         jschLog = true
+        logging = 'slf4j'
     }
 }
 
@@ -52,23 +53,27 @@ dependencies {
 def remoteBuildDir = project.findProperty("RasPiRemoteBuildDir")
 tasks.register('buildNativeOnPi') {
     description = 'build native lib on remote pi'
+    def preamble = "[buildNativeOnPi] -"
+    def scriptName = "src/scripts/createNativeLib.sh"
     doLast {
         ssh.run {
             session(remotes.rasPi) {
-                println("[buildNativeOnPi] - Copy all files...")
-                put from: './src/', into: remoteBuildDir
+                println("$preamble Delete build dir in case it already exists")
+                execute "rm -rf $remoteBuildDir"
+                execute "mkdir $remoteBuildDir"
+                println("$preamble Copy all files...")
+                put from: 'src/', into: "$remoteBuildDir/"
 
                 //remove windows line breaks
-                execute "cd $remoteBuildDir; tr -d '\\r' <src/scripts/createNativeLib.sh >src/scripts/createNativeLib.sh"
-                execute "cd $remoteBuildDir; chmod +x src/scripts/createNativeLib.sh"
+                //execute "cd $remoteBuildDir; tr -d '\\r' < scripts/createNativeLib.sh > scripts/createNativeLib.sh"
+                execute "cd $remoteBuildDir; chmod +x $scriptName"
                 //now build
-                println("[buildNativeOnPi] - Execute build script...")
-                execute "cd $remoteBuildDir; touch logs.txt; bash src/scripts/createNativeLib.sh > logs.txt 2>&1"
-
-                println("[buildNativeOnPi] - Copy generated artifacts back")
+                println("$preamble Execute build script...")
+                execute("cd $remoteBuildDir; bash $scriptName 1>&2")
+                println("$preamble Copy generated artifacts back")
                 get from: "$remoteBuildDir/build", into: '.'
 
-                println("[buildNativeOnPi] - All Done! Try ./gradlew assemble")
+                println("$preamble All Done! Try ./gradlew assemble")
             }
         }
 
@@ -78,18 +83,7 @@ tasks.register('finalizeBuildNative') {
     doLast {
         ssh.run {
             session(remotes.rasPi) {
-                get from: "$remoteBuildDir/logs.txt", into: 'build/'
-            }
-            println("The captured log output from 'createNativeLib.sh'...")
-            def logFile = project.file("build/logs.txt")
 
-            if (logFile.exists()) {
-                // Read and print the log file contents
-                logFile.eachLine { line ->
-                    println line
-                }
-            } else {
-                println "Log file not found."
             }
         }
 
