@@ -1,27 +1,38 @@
 plugins {
     id 'net.researchgate.release' version '2.6.0'
-    id 'org.hidetake.ssh' version '2.11.2'
     id 'java'
     id 'maven-publish'
     id 'signing'
-}
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-}
-
-remotes {
-    rasPi {
-        host = project.findProperty("RasPiHost")
-        user = project.findProperty("RasPiUser")
-        password = project.findProperty("RasPiPassword")
-        fileTransfer = "scp"
-        jschLog = true
-    }
 }
 
 apply plugin: 'java'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+repositories {
+    mavenCentral()
+}
+
+configurations { sshAntTask }
+dependencies {
+    compileOnly 'org.apache.logging.log4j:log4j-api:2.10.0'
+    runtimeOnly 'org.apache.logging.log4j:log4j-core:2.12.4'
+    sshAntTask 'org.apache.ant:ant-jsch:1.10.14'
+    testImplementation 'junit:junit:4.13.1'
+}
+
+ant.taskdef(
+        name: 'scp',
+        classname: 'org.apache.tools.ant.taskdefs.optional.ssh.Scp',
+        classpath: configurations.sshAntTask.asPath)
+
+ant.taskdef(
+        name: 'ssh',
+        classname: 'org.apache.tools.ant.taskdefs.optional.ssh.SSHExec',
+        classpath: configurations.sshAntTask.asPath)
 
 group = 'com.github.mbelling'
 
@@ -37,66 +48,71 @@ sourceSets {
         }
     }
 }
+def remBuildDir = project.findProperty("RasPiRemoteBuildDir")
 
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    compileOnly 'org.apache.logging.log4j:log4j-api:2.10.0'
-    runtimeOnly 'org.apache.logging.log4j:log4j-core:2.12.4'
-
-    testImplementation 'junit:junit:4.13.1'
-}
-
-def remoteBuildDir = project.findProperty("RasPiRemoteBuildDir")
 tasks.register('buildNativeOnPi') {
     description = 'build native lib on remote pi'
+    def host = project.findProperty("RasPiHost")
+    def un = project.findProperty("RasPiUser")
+    def pw = project.findProperty("RasPiPassword")
     doLast {
-        ssh.run {
-            session(remotes.rasPi) {
-                println("[buildNativeOnPi] - Copy all files...")
-                put from: './src/', into: remoteBuildDir
-
-                //remove windows line breaks
-                execute "cd $remoteBuildDir; tr -d '\\r' <src/scripts/createNativeLib.sh >src/scripts/createNativeLib.sh"
-                execute "cd $remoteBuildDir; chmod +x src/scripts/createNativeLib.sh"
-                //now build
-                println("[buildNativeOnPi] - Execute build script...")
-                execute "cd $remoteBuildDir; touch logs.txt; bash src/scripts/createNativeLib.sh > logs.txt 2>&1"
-
-                println("[buildNativeOnPi] - Copy generated artifacts back")
-                get from: "$remoteBuildDir/build", into: '.'
-
-                println("[buildNativeOnPi] - All Done! Try ./gradlew assemble")
-            }
-        }
-
-    }
-}
-tasks.register('finalizeBuildNative') {
-    doLast {
-        ssh.run {
-            session(remotes.rasPi) {
-                get from: "$remoteBuildDir/logs.txt", into: 'build/'
-            }
-            println("The captured log output from 'createNativeLib.sh'...")
-            def logFile = project.file("build/logs.txt")
-
-            if (logFile.exists()) {
-                // Read and print the log file contents
-                logFile.eachLine { line ->
-                    println line
-                }
-            } else {
-                println "Log file not found."
-            }
-        }
-
+        println("trying to log in to $un@$host with pw $pw")
+        ant.scp(
+                file: "src/ $un@$host:$remBuildDir",
+                password: $pw
+                host: host,
+                username: un,
+                password: pw,
+                verbose: true,
+                failonerror: true
+        )
+        ant.ssh(
+                host: host,
+                username: un,
+                password: pw,
+                command: "sudo bash $remBuildDir/src/scripts/createNativeLib.sh",
+                trust: 'yes',
+                verbose: true,
+                outputproperty: "outProp",
+                resultproperty: "resProp",
+                failonerror: true
+        )
     }
 }
 
-tasks.buildNativeOnPi.finalizedBy('finalizeBuildNative')
+tasks.register("finalizeBuild") {
+    doLast {
+
+        println("**********************************************************************")
+        println("                         LOG from remote build:")
+        println("**********************************************************************")
+        println(ant.getProperty("outProp"))
+    }
+}
+buildNativeOnPi.finalizedBy finalizeBuild
+
+
+/*
+        println("[buildNativeOnPi] - Copy all files...")
+        commandLine 'scp'
+        put from: './src/', into: remoteBuildDir
+
+        //remove windows line breaks
+        execute "cd $remoteBuildDir; tr -d '\\r' <src/scripts/createNativeLib.sh >src/scripts/createNativeLib.sh"
+        execute "cd $remoteBuildDir; chmod +x src/scripts/createNativeLib.sh"
+        //now build
+        println("[buildNativeOnPi] - Execute build script...")
+        execute "cd $remoteBuildDir; touch logs.txt; bash src/scripts/createNativeLib.sh > logs.txt 2>&1"
+
+        println("[buildNativeOnPi] - Copy generated artifacts back")
+        get from: "$remoteBuildDir/build", into: '.'
+
+        println("[buildNativeOnPi] - All Done! Try ./gradlew assemble")
+
+    }
+}*/
+
+tasks.register('copyFilesBackAfterRemoteBuild')
 
 
 tasks.register('checkSharedLibrary') {
