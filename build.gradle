@@ -25,6 +25,10 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 group = 'com.github.mbelling'
+//flag to disable signing if keyInfo ain't present
+def doSigning = project.hasProperty('signing.keyId')
+        && project.hasProperty('signing.password')
+        && project.hasProperty('signing.secretKeyRingFile');
 
 sourceSets {
     main {
@@ -97,7 +101,7 @@ tasks.register('checkSharedLibrary') {
     description = "Check if the shared library exists in the desired location"
 
     doLast {
-        def libraryFile = file('/build/nativeLib/libws281x.so')
+        def libraryFile = file('build/nativeLib/libws281x.so')
 
         if (!libraryFile.exists()) {
             throw new GradleException("Shared library is missing in the desired location.")
@@ -120,10 +124,6 @@ artifacts {
     archives jar
     archives sourceJar
     archives javadocJar
-}
-
-signing {
-    sign configurations.archives
 }
 
 publishing {
@@ -149,16 +149,19 @@ publishing {
             artifact(javadocJar) {
                 classifier 'javadoc'
             }
-            // create the signed artifacts
-            project.tasks.signArchives.signatureFiles.each {
-                artifact(it) {
-                    def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
-                    if (matcher.find()) {
-                        classifier = matcher.group(1)
-                    } else {
-                        classifier = null
+
+            if (doSigning) {
+                // create the signed artifacts
+                project.tasks.signArchives.signatureFiles.each {
+                    artifact(it) {
+                        def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
+                        if (matcher.find()) {
+                            classifier = matcher.group(1)
+                        } else {
+                            classifier = null
+                        }
+                        extension = 'jar.asc'
                     }
-                    extension = 'jar.asc'
                 }
             }
         }
@@ -216,14 +219,22 @@ def customizePom(pom) {
     }
 }
 
+// Check if signing properties are defined in gradle.properties
+if (doSigning) {
+    signing {
+        sign configurations.archives
+    }
+
+    tasks.named 'publishMavenJavaPublicationToMavenLocal' {
+        dependsOn project.tasks.named 'signArchives'
+    }
+    tasks.named 'publishMavenJavaPublicationToMavenRepository' {
+        dependsOn project.tasks.named 'signArchives'
+    }
+}
+
 model {
     tasks.generatePomFileForMavenJavaPublication {
         destination = layout.buildDirectory.file("generated-pom.xml")
-    }
-    tasks.publishMavenJavaPublicationToMavenLocal {
-        dependsOn project.tasks.signArchives
-    }
-    tasks.publishMavenJavaPublicationToMavenRepository {
-        dependsOn project.tasks.signArchives
     }
 }
