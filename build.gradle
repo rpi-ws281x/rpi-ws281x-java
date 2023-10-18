@@ -26,7 +26,7 @@ apply plugin: 'signing'
 
 group = 'com.github.mbelling'
 //flag to disable signing if keyInfo ain't present
-def doSigning = project.hasProperty('signing.keyId')
+boolean doSigning = project.hasProperty('signing.keyId')
         && project.hasProperty('signing.password')
         && project.hasProperty('signing.secretKeyRingFile');
 
@@ -34,11 +34,11 @@ sourceSets {
     main {
         java {
             // Get the generated source from SWIG
-            srcDirs 'build/generatedSource/java'
+            srcDirs file('build/generatedSource/java')
         }
         resources {
             // Get the native .so file
-            srcDirs 'build/nativeLib'
+            srcDirs file('build/nativeLib/')
         }
     }
 }
@@ -134,13 +134,17 @@ publishing {
             artifactId project.name
             version project.version
             from components.java
-            pom.withXml {
-                def pomFile = file("${project.buildDir}/generated-pom.xml")
-                writeTo(pomFile)
-                def pomAscFile = signing.sign(pomFile).signatureFiles[0]
-                artifact(pomAscFile) {
-                    classifier = null
-                    extension = 'pom.asc'
+            pom {
+                withXml {
+                    def pomFile = file("${project.buildDir}/generated-pom.xml")
+                    writeTo(pomFile)
+                    if (doSigning) {
+                        def pomAscFile = signing.sign(pomFile).signatureFiles[0]
+                        artifact(pomAscFile) {
+                            classifier = null
+                            extension = 'pom.asc'
+                        }
+                    }
                 }
             }
             artifact(sourceJar) {
@@ -214,6 +218,12 @@ def customizePom(pom) {
                 developer {
                     name "Matthew Bellinger"
                 }
+                developer {
+                    name "MNG"
+                    roles {
+                        role "Update and Improvements like added checks, examples and increased usability"
+                    }
+                }
             }
         }
     }
@@ -236,5 +246,9 @@ if (doSigning) {
 model {
     tasks.generatePomFileForMavenJavaPublication {
         destination = layout.buildDirectory.file("generated-pom.xml")
+    }
+    tasks.generateMetadataFileForMavenJavaPublication {
+        dependsOn javadocJar
+        dependsOn sourceJar
     }
 }
