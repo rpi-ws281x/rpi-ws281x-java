@@ -69,11 +69,12 @@ echo "****************************************************"
 
 # Check dependencies installed
 set -e
-programInstalled "swig -version" "SWIG Version" "Error - SWIG is not installed, cannot continue!" "Check - SWIG installed..."
-programInstalled "gcc --version" "free software" "Error - GCC is not installed, cannot continue!" "Check - GCC installed..."
-programInstalled "ar --version" "free software" "Error - AR is not installed, cannot continue!" "Check - AR installed..."
-programInstalled "ranlib -v" "free software" "Error - ranlib is not installed, cannot continue!" "Check - ranlib installed..."
-programInstalled "git --version" "git version" "Error - git is not installed, cannot continue!" "Check - git installed..."
+programInstalled "swig -version" "SWIG Version" "Error - SWIG is not installed, cannot continue! Check out the tutorial in this repo's README!" "✅ - SWIG installed..."
+programInstalled "java --version" "Runtime Environment" "Error  -  Java is not installed, cannot continue! (SWIG won't work either w/out java btw... Check out the tutorial in the README!)"
+programInstalled "gcc --version" "free software" "Error - GCC is not installed, cannot continue!" "✅ - GCC installed..."
+programInstalled "ar --version" "free software" "Error - AR is not installed, cannot continue!" "✅ - AR installed..."
+programInstalled "ranlib -v" "free software" "Error - ranlib is not installed, cannot continue!" "✅ - ranlib installed..."
+programInstalled "git --version" "git version" "Error - git is not installed, cannot continue!" "✅ - git installed..."
 set +e
 
 # Clean workspace
