@@ -1,8 +1,8 @@
 package com.github.mbelling.ws281x;
 
 import com.github.mbelling.ws281x.jni.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,7 +16,7 @@ import static com.github.mbelling.ws281x.Color.buildColour;
  * Basic class to interface with the rpi_ws281x native library
  */
 public class Ws281xLedStrip implements LedStrip {
-    private static final Logger LOG = LogManager.getLogger( Ws281xLedStrip.class );
+    private static final Logger LOG = LoggerFactory.getLogger( Ws281xLedStrip.class );
     private static final String LIB_NAME = "ws281x";
 
     private static final AtomicBoolean loaded = new AtomicBoolean( false );
