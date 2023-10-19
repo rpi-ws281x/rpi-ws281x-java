@@ -20,10 +20,6 @@ remotes {
     }
 }
 
-apply plugin: 'java'
-apply plugin: 'maven-publish'
-apply plugin: 'signing'
-
 group = 'com.github.mbelling'
 //flag to disable signing if keyInfo ain't present
 boolean doSigning = project.hasProperty('signing.keyId')
@@ -34,13 +30,17 @@ sourceSets {
     main {
         java {
             // Get the generated source from SWIG
-            srcDirs file('build/generatedSource/java')
+            srcDirs('build/generatedSource/java')
         }
         resources {
             // Get the native .so file
-            srcDirs file('build/nativeLib/')
+            srcDirs('build/nativeLib/')
         }
     }
+}
+
+jar {
+    from sourceSets.main.output
 }
 
 repositories {
@@ -48,8 +48,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.apache.logging.log4j:log4j-api:2.10.0'
-    runtimeOnly 'org.apache.logging.log4j:log4j-core:2.12.4'
+    implementation 'org.slf4j:slf4j-api:1.7.32'
 
     testImplementation 'junit:junit:4.13.1'
 }
@@ -109,21 +108,11 @@ tasks.register('checkSharedLibrary') {
     }
 }
 
-tasks.register('sourceJar', Jar) {
-    from sourceSets.main.allJava
-}
+compileJava.dependsOn checkSharedLibrary
 
-tasks.register('javadocJar', Jar) {
-    dependsOn javadoc
-    from javadoc.destinationDir
-}
-
-build.dependsOn checkSharedLibrary
-
-artifacts {
-    archives jar
-    archives sourceJar
-    archives javadocJar
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 publishing {
@@ -146,12 +135,6 @@ publishing {
                         }
                     }
                 }
-            }
-            artifact(sourceJar) {
-                classifier 'sources'
-            }
-            artifact(javadocJar) {
-                classifier 'javadoc'
             }
 
             if (doSigning) {
@@ -246,9 +229,5 @@ if (doSigning) {
 model {
     tasks.generatePomFileForMavenJavaPublication {
         destination = layout.buildDirectory.file("generated-pom.xml")
-    }
-    tasks.generateMetadataFileForMavenJavaPublication {
-        dependsOn javadocJar
-        dependsOn sourceJar
     }
 }
