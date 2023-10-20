@@ -13,7 +13,11 @@ remotes {
     rasPi {
         host = project.findProperty("RasPiHost")
         user = project.findProperty("RasPiUser")
-        password = project.findProperty("RasPiPassword")
+        if(project.hasProperty("RasPiKey")){
+            identity = file(project.findProperty("RasPiKey"))
+        }else {
+            password = project.findProperty("RasPiPassword")
+        }
         fileTransfer = "scp"
         jschLog = true
         logging = 'slf4j'
@@ -53,6 +57,21 @@ dependencies {
     testImplementation 'junit:junit:4.13.1'
 }
 
+tasks.register('installSwigOnPi'){
+    description = 'try to install swig on the raspi'
+    doLast{
+        ssh.run{
+            session(remotes.rasPi){
+                println("ATEMPTING TO INSTALL SWIG")
+                put (from:'install-swig-on-pi.sh', into: '~')
+                execute "cd ~; chmod +x install-swig-on-pi.sh"
+                execute("cd ~; bash install-swig-on-pi.sh 1>&2") //re-route stdout to stderr so the user sees all the log output
+                println("SUCCESS!")
+            }
+        }
+    }
+}
+
 def remoteBuildDir = project.findProperty("RasPiRemoteBuildDir")
 tasks.register('buildNativeOnPi') {
     description = 'build native lib on remote pi'
@@ -72,7 +91,7 @@ tasks.register('buildNativeOnPi') {
                 execute "cd $remoteBuildDir; chmod +x $scriptName"
                 //now build
                 println("$preamble Execute build script...")
-                execute("cd $remoteBuildDir; bash $scriptName 1>&2")
+                execute("cd $remoteBuildDir; bash $scriptName 1>&2") //re-route stdout to stderr so the user sees all the log output
                 println("$preamble Copy generated artifacts back")
                 get from: "$remoteBuildDir/build", into: '.'
 
