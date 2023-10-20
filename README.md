@@ -9,7 +9,7 @@ Run `./gradlew assemble` to compile the java code and create a jar containing th
 
 ### To build from another machine
 
-Set the appropriate username, host and password in `gradle.properties`.
+Set the appropriate username, host and password (or path to private key) in `gradle.properties`.
 
 Then, run `./gradlew buildNativeOnPi`.  Note that your RaspberryPi needs to have ssh installed as gradle will use ITS ssh client.
 
@@ -19,6 +19,8 @@ Alternatively, you can also use the script `build-native-on-remote-pi.sh` with b
 This will copy the project to the pi, and run the script in the previous section, and copy the .so library back to the dev machine. After that, run `.\gradlew assemble` to compile the java code and create a jar containing the compile class files and the native .so file.  The easiest way to use the jar would be to publish it to a maven repository, or your local .m2 repository using `./gradlew publishToMavenLocal` and use maven coordinates in your maven or gradle project. 
 
 #### Install SWIG on RaspberryPi
+
+You can try `./gradlew installSwigOnPi` to automatically execute all the steps detailed below on your pi.
 
 These commands worked for me:
 1. Install [prereqs](https://github.com/swig/swig/wiki/Getting-Started#linux---ubuntu)
