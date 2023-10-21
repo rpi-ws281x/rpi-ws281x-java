@@ -122,7 +122,7 @@ tasks.register('checkSharedLibrary') {
         def libraryFile = file('build/nativeLib/libws281x.so')
 
         if (!libraryFile.exists()) {
-            throw new GradleException("Shared library is missing in the desired location.")
+            throw new GradleException("Shared library is missing in the desired location. Consult README and try ./gradlew buildNativeOnPi")
         }
     }
 }

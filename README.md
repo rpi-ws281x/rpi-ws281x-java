@@ -11,7 +11,7 @@ Run `./gradlew assemble` to compile the java code and create a jar containing th
 
 Set the appropriate username, host and password (or path to private key) in `gradle.properties`.
 
-Then, run `./gradlew buildNativeOnPi`.  Note that your RaspberryPi needs to have ssh installed as gradle will use ITS ssh client.
+Then, run `./gradlew buildNativeOnPi`.  Note that your RaspberryPi needs to have ssh installed as gradle will use *its* ssh client.
 
 Alternatively, you can also use the script `build-native-on-remote-pi.sh` with bash or a bash-compatible shell (like babun, cygwin, or git-bash on windows.).
 
@@ -21,6 +21,14 @@ This will copy the project to the pi, and run the script in the previous section
 #### Install SWIG on RaspberryPi
 
 You can try `./gradlew installSwigOnPi` to automatically execute all the steps detailed below on your pi.
+
+**NOTE:** 
+The default-jdk-headless which this task will try to install works only on pis with ARMv7+ architecture (check with the command `cat /proc/cpuinfo`).
+The script will try to detect this and install the zulu jdk as an alternative, but this has only been tested on a raspberrypi Zero so far.
+
+**So proceed with caution!**
+
+You can read more in the [pi4j docs](https://pi4j.com/documentation/java-installation/).
 
 These commands worked for me:
 1. Install [prereqs](https://github.com/swig/swig/wiki/Getting-Started#linux---ubuntu)
