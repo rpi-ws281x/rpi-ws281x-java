@@ -2,22 +2,24 @@
 rpi281x wrapper for Java using SWIG
 
 ## TL;DR
-successfully tested on a RaspberryPi 3B+
+
+Successfully tested on a RaspberryPi 3B+
 
 1. set RaspberryPi ssh username and password in gradle.properties
 2. run `./gradlew installSwigOnPi`
 3. run `./gradlew buildNativeOnPi`
 4. run `./gradlew publishToMavenLocal -PtargetComp=11`
-5. run `./gradlew runExample -PtargetComp=11 -PamountOfLeds=16` to test. Set the amount of LEDs you want to test with the `-PamountOfLeds` property. 
-Set `-PtargetComp=11` if the java version on your raspi is 11 (often true because it's the default-jdk). Otherwise it is assumed that the java version on your raspi is the same as the one gradle uses.
-6. kill runing example java app by ssh-ing into your raspi and using `htop` to send a `SIGINT` signal to the process.
-### To build on a raspberry pi
+5. run `./gradlew runExample -PtargetComp=11 -PamountOfLeds=16` to test.<br> Set the amount of LEDs you want to test with the `-PamountOfLeds` property. <br>
+Set `-PtargetComp=11` if the java version on your raspi is 11 (often true because it's the default-jdk). Otherwise it is assumed that the java version on your raspi matches the one gradle uses.
+7. kill runing example java app by ssh-ing into your raspi and using `htop` to send a `SIGINT` signal to the process.
+
+## To build on a raspberry pi
 
 Run `src/scripts/createNativeLib.sh` to generate the SWIG java code and generate the libws2811.so native library (For a tutorial on how to install SWIG, see "Install SWIG on RaspberryPi" below).
 
 Run `./gradlew assemble` to compile the java code and create a jar containing the compile class files and the native .so file.
 
-### To build from another machine
+## To build from another machine
 
 Set the appropriate username, host and password (or path to private key) in `gradle.properties`.
 
@@ -28,7 +30,7 @@ Alternatively, you can also use the script `build-native-on-remote-pi.sh` with b
 
 This will copy the project to the pi, and run the script in the previous section, and copy the .so library back to the dev machine. After that, run `.\gradlew assemble` to compile the java code and create a jar containing the compile class files and the native .so file.  The easiest way to use the jar would be to publish it to a maven repository, or your local .m2 repository using `./gradlew publishToMavenLocal` and use maven coordinates in your maven or gradle project. 
 
-#### Install SWIG on RaspberryPi
+## To install SWIG on the RaspberryPi
 
 You can try `./gradlew installSwigOnPi` to automatically execute all the steps detailed below on your pi.
 
@@ -37,8 +39,6 @@ The default-jdk-headless which this task will try to install works only on pis w
 The script will try to detect this and install the zulu jdk as an alternative, but this has only been tested on a raspberrypi Zero so far.
 On my RasPi Zero this task took 30min the majority of which was spent building SWIG.
 On the RasPi 3 B it took 8 mins.
-
-**So proceed with caution!**
 
 You can read more in the [pi4j docs](https://pi4j.com/documentation/java-installation/).
 
