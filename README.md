@@ -2,11 +2,15 @@
 rpi281x wrapper for Java using SWIG
 
 ## TL;DR
-1. Set RaspberryPi ssh username and password in gradle.properties
+successfully tested on a RaspberryPi 3B+
+
+1. set RaspberryPi ssh username and password in gradle.properties
 2. run `./gradlew installSwigOnPi`
 3. run `./gradlew buildNativeOnPi`
-4. run `./gradlew publishToMavenLocal`
-
+4. run `./gradlew publishToMavenLocal -PtargetComp=11`
+5. run `./gradlew runExample -PtargetComp=11 -PamountOfLeds=16` to test. Set the amount of LEDs you want to test with the `-PamountOfLeds` property. 
+Set `-PtargetComp=11` if the java version on your raspi is 11 (often true because it's the default-jdk). Otherwise it is assumed that the java version on your raspi is the same as the one gradle uses.
+6. kill runing example java app by ssh-ing into your raspi and using `htop` to send a `SIGINT` signal to the process.
 ### To build on a raspberry pi
 
 Run `src/scripts/createNativeLib.sh` to generate the SWIG java code and generate the libws2811.so native library (For a tutorial on how to install SWIG, see "Install SWIG on RaspberryPi" below).
