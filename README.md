@@ -57,7 +57,7 @@ sudo apt install default-jdk-headless
 wget http://prdownloads.sourceforge.net/swig/swig-4.1.1.tar.gz
 tar -xzvf swig-4.1.1.tar.gz
 ```
-4. enter directory and start building
+4. Enter directory and start building
 ```shell
 cd swig-4.1.1
 ./configure && make
