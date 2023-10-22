@@ -1,6 +1,12 @@
 # rpi-ws281x-java
 rpi281x wrapper for Java using SWIG
 
+## TL;DR
+1. Set RaspberryPi ssh username and password in gradle.properties
+2. run `./gradlew installSwigOnPi`
+3. run `./gradlew buildNativeOnPi`
+4. run `./gradlew publishToMavenLocal`
+
 ### To build on a raspberry pi
 
 Run `src/scripts/createNativeLib.sh` to generate the SWIG java code and generate the libws2811.so native library (For a tutorial on how to install SWIG, see "Install SWIG on RaspberryPi" below).
@@ -22,9 +28,11 @@ This will copy the project to the pi, and run the script in the previous section
 
 You can try `./gradlew installSwigOnPi` to automatically execute all the steps detailed below on your pi.
 
-**NOTE:** 
+**NOTE:**
 The default-jdk-headless which this task will try to install works only on pis with ARMv7+ architecture (check with the command `cat /proc/cpuinfo`).
 The script will try to detect this and install the zulu jdk as an alternative, but this has only been tested on a raspberrypi Zero so far.
+On my RasPi Zero this task took 30min the majority of which was spent building SWIG.
+On the RasPi 3 B it took 8 mins.
 
 **So proceed with caution!**
 
