@@ -10,6 +10,8 @@
 # Configuration
 # *********************************************************************************************************************
 
+#This is needed since somehow the swig command isn't being found on my RasPi 0 otherwise
+PATH=$PATH:/usr/local/bin/
 # This defines the JDK to use for JNI header files; automatically picks first dir using ls
 JDK_PATH="/usr/lib/jvm"
 JDK_DIR=$(ls "${JDK_PATH}" | head -n 1)
@@ -63,9 +65,11 @@ function programInstalled
 # *********************************************************************************************************************
 # Main
 # *********************************************************************************************************************
-
-echo "NeoPixel ws281x Library Compiler"
-echo "****************************************************"
+echo "**********************[createNativeLib.sh]******************************"
+echo "*                                                                      *"
+echo "*               NeoPixel ws281x Library Compiler                       *"
+echo "*                                                                      *"
+echo "************************************************************************"
 
 # Check dependencies installed
 set -e

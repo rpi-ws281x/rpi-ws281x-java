@@ -59,13 +59,15 @@ dependencies {
 
 tasks.register('installSwigOnPi'){
     description = 'try to install swig on the raspi'
+    def swigDir = "~/rpi_ws281x_build/swigInstall"
     doLast{
         ssh.run{
             session(remotes.rasPi){
                 println("ATEMPTING TO INSTALL SWIG")
-                put (from:'install-swig-on-pi.sh', into: '~')
-                execute "cd ~; chmod +x install-swig-on-pi.sh"
-                execute("cd ~; bash install-swig-on-pi.sh 1>&2") //re-route stdout to stderr so the user sees all the log output
+                execute "mkdir -p $swigDir"
+                put (from:'install-swig-on-pi.sh', into: swigDir)
+                execute "cd $swigDir; chmod +x install-swig-on-pi.sh"
+                execute("cd $swigDir; bash install-swig-on-pi.sh 1>&2") //re-route stdout to stderr so the user sees all the log output
                 println("SUCCESS!")
             }
         }
@@ -80,9 +82,8 @@ tasks.register('buildNativeOnPi') {
     doLast {
         ssh.run {
             session(remotes.rasPi) {
-                println("$preamble Delete build dir in case it already exists")
-                execute "rm -rf $remoteBuildDir"
-                execute "mkdir $remoteBuildDir"
+                println("$preamble make build dir in case it doesn't exists")
+                execute "mkdir -p $remoteBuildDir"
                 println("$preamble Copy all files...")
                 put from: 'src/', into: "$remoteBuildDir/"
 

@@ -2,11 +2,13 @@
 set -e
 set -o pipefail
 cd ~
-#sudo apt-get --yes --force-yes install build-essential libpcre2-dev libpcre3-dev
+sudo apt-get --yes --force-yes install build-essential libpcre2-dev libpcre3-dev
+set +e
 echo "check if java is already installed..."
 java --version | grep jdk
 if [ $? -ne 0 ]
 then
+  set -e
    echo "didn't detect install, will try..."
    echo "check cpu architecture..."
    cat /proc/cpuinfo | grep ARMv6
@@ -27,7 +29,7 @@ then
 else
   echo "detected java, skipping install"
 fi
-
+set -e
 mkdir -p ~/rpi_ws281x_build/swigInstall
 cd ~/rpi_ws281x_build/swigInstall
 if [ -d "swig-4.1.1" ]; then
@@ -73,11 +75,14 @@ if [ "$FOUNDJNI" = "true" ]; then
   sudo ./configure
 else
   if [ -z ${SELFJNI+x} ]; then
+    echo "*********************[install-swig-on-pi.sh]*********************"
     echo "NO JNI FOUND! NO POINT IN COMPILING SWIG ONLY FOR IT TO FAIL!"
     echo "you could try running ./configure in $(pwd) yourself. If at the end it outputs:"
     echo "'The SWIG test-suite and examples are configured for the following languages:'"
     echo "    java perl5"
     echo "...then you're fine. You can then run the very time consuming command 'make' to compile swig."
+    echo "*****************************************************************"
+
     exit 1
   else
     echo "passing include dir '$SELFJNI' to ./configure..."
@@ -85,16 +90,28 @@ else
   fi
 fi
 sudo make
+echo "*********************[install-swig-on-pi.sh]*********************"
 echo "COMPILATION DONE!!"
+echo "*****************************************************************"
 cd Examples/java/class && make check
+echo "*********************[install-swig-on-pi.sh]*********************"
 echo "CHECK DONE!!"
+echo "*****************************************************************"
 cd ../../../
 sudo make install
-swig -version | grep "SWIG Version 4.1.1"
+set +e
+source ~/.bashrc
+/usr/local/bin/swig -version | grep "SWIG Version 4.1.1"
 if [ $? -ne 0 ]; then
+  echo "*********************[install-swig-on-pi.sh]*********************"
   echo "swig -version command didn't output expected info. Install probably failed 😣"
+  echo "*****************************************************************"
+
   exit 1;
 else
+  echo "*********************[install-swig-on-pi.sh]*********************"
   echo "Install worked!!! 🔥🔥😀"
+  echo "*****************************************************************"
+
   exit 0;
 fi
