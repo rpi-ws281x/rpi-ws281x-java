@@ -124,8 +124,9 @@ tasks.register('buildNativeOnPi') {
 }
 tasks.register('uberExamplesJar', Jar) {
     archiveClassifier = 'uberExamples'
+    def exeClass = project.findProperty("example")
     manifest {
-        attributes 'Main-Class': 'com.github.mng.ws281x.examples.ConsecutiveTurnOnExample'
+        attributes 'Main-Class': "com.github.mng.ws281x.examples.$exeClass"
     }
     from sourceSets.examples.output
     dependsOn configurations.examplesRuntimeClasspath
