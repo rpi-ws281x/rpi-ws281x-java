@@ -1,24 +1,50 @@
 plugins {
-  id 'net.researchgate.release' version '2.6.0'
+    id 'net.researchgate.release' version '2.6.0'
+    id 'org.hidetake.ssh' version '2.11.2'
+    id 'java'
+    id 'maven-publish'
+    id 'signing'
+}
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
 }
 
-apply plugin: 'java'
-apply plugin: 'maven-publish'
-apply plugin: 'signing'
+remotes {
+    rasPi {
+        host = project.findProperty("RasPiHost")
+        user = project.findProperty("RasPiUser")
+        if(project.hasProperty("RasPiKey")){
+            identity = file(project.findProperty("RasPiKey"))
+        }else {
+            password = project.findProperty("RasPiPassword")
+        }
+        fileTransfer = "scp"
+        jschLog = true
+        logging = 'slf4j'
+    }
+}
 
 group = 'com.github.mbelling'
+//flag to disable signing if keyInfo ain't present
+boolean doSigning = project.hasProperty('signing.keyId')
+        && project.hasProperty('signing.password')
+        && project.hasProperty('signing.secretKeyRingFile');
 
 sourceSets {
     main {
         java {
             // Get the generated source from SWIG
-            srcDirs 'build/generatedSource/java'
+            srcDirs('build/generatedSource/java')
         }
         resources {
             // Get the native .so file
-            srcDirs 'build/nativeLib'
+            srcDirs('build/nativeLib/')
         }
     }
+}
+
+jar {
+    from sourceSets.main.output
 }
 
 repositories {
@@ -26,30 +52,87 @@ repositories {
 }
 
 dependencies {
-    compile 'org.apache.logging.log4j:log4j-api:2.10.0'
-    runtime 'org.apache.logging.log4j:log4j-core:2.10.0'
+    implementation 'org.slf4j:slf4j-api:1.7.32'
 
-    testCompile 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.1'
 }
 
-task sourceJar(type: Jar) {
-    classifier "sources"
-    from sourceSets.main.allJava
+tasks.register('installSwigOnPi'){
+    description = 'try to install swig on the raspi'
+    def swigDir = "~/rpi_ws281x_build/swigInstall"
+    doLast{
+        ssh.run{
+            session(remotes.rasPi){
+                println("ATEMPTING TO INSTALL SWIG")
+                execute "mkdir -p $swigDir"
+                put (from:'install-swig-on-pi.sh', into: swigDir)
+                execute "cd $swigDir; chmod +x install-swig-on-pi.sh"
+                execute("cd $swigDir; bash install-swig-on-pi.sh 1>&2") //re-route stdout to stderr so the user sees all the log output
+                println("SUCCESS!")
+            }
+        }
+    }
 }
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier "javadoc"
-    from javadoc.destinationDir
+def remoteBuildDir = project.findProperty("RasPiRemoteBuildDir")
+tasks.register('buildNativeOnPi') {
+    description = 'build native lib on remote pi'
+    def preamble = "[buildNativeOnPi] -"
+    def scriptName = "src/scripts/createNativeLib.sh"
+    doLast {
+        ssh.run {
+            session(remotes.rasPi) {
+                println("$preamble make build dir in case it doesn't exists")
+                execute "mkdir -p $remoteBuildDir"
+                println("$preamble Copy all files...")
+                put from: 'src/', into: "$remoteBuildDir/"
+
+                //remove windows line breaks
+                //execute "cd $remoteBuildDir; tr -d '\\r' < scripts/createNativeLib.sh > scripts/createNativeLib.sh"
+                execute "cd $remoteBuildDir; chmod +x $scriptName"
+                //now build
+                println("$preamble Execute build script...")
+                execute("cd $remoteBuildDir; bash $scriptName 1>&2") //re-route stdout to stderr so the user sees all the log output
+                println("$preamble Copy generated artifacts back")
+                get from: "$remoteBuildDir/build", into: '.'
+
+                println("$preamble All Done! Try ./gradlew assemble")
+            }
+        }
+
+    }
+}
+tasks.register('finalizeBuildNative') {
+    doLast {
+        ssh.run {
+            session(remotes.rasPi) {
+
+            }
+        }
+
+    }
 }
 
-artifacts {
-    archives jar
-    archives sourceJar
-    archives javadocJar
+tasks.buildNativeOnPi.finalizedBy('finalizeBuildNative')
+
+
+tasks.register('checkSharedLibrary') {
+    description = "Check if the shared library exists in the desired location"
+
+    doLast {
+        def libraryFile = file('build/nativeLib/libws281x.so')
+
+        if (!libraryFile.exists()) {
+            throw new GradleException("Shared library is missing in the desired location. Consult README and try ./gradlew buildNativeOnPi")
+        }
+    }
 }
 
-signing {
-    sign configurations.archives
+compileJava.dependsOn checkSharedLibrary
+
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 publishing {
@@ -60,31 +143,32 @@ publishing {
             artifactId project.name
             version project.version
             from components.java
-            pom.withXml {
-                def pomFile = file("${project.buildDir}/generated-pom.xml")
-                writeTo(pomFile)
-                def pomAscFile = signing.sign(pomFile).signatureFiles[0]
-                artifact(pomAscFile) {
-                    classifier = null
-                    extension = 'pom.asc'
+            pom {
+                withXml {
+                    def pomFile = file("${project.buildDir}/generated-pom.xml")
+                    writeTo(pomFile)
+                    if (doSigning) {
+                        def pomAscFile = signing.sign(pomFile).signatureFiles[0]
+                        artifact(pomAscFile) {
+                            classifier = null
+                            extension = 'pom.asc'
+                        }
+                    }
                 }
             }
-            artifact(sourceJar) {
-                classifier = 'sources'
-            }
-            artifact(javadocJar) {
-                classifier = 'javadoc'
-            }
-            // create the signed artifacts
-            project.tasks.signArchives.signatureFiles.each {
-                artifact(it) {
-                    def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
-                    if (matcher.find()) {
-                        classifier = matcher.group(1)
-                    } else {
-                        classifier = null
+
+            if (doSigning) {
+                // create the signed artifacts
+                project.tasks.signArchives.signatureFiles.each {
+                    artifact(it) {
+                        def matcher = it.file =~ /-(sources|javadoc)\.jar\.asc$/
+                        if (matcher.find()) {
+                            classifier = matcher.group(1)
+                        } else {
+                            classifier = null
+                        }
+                        extension = 'jar.asc'
                     }
-                    extension = 'jar.asc'
                 }
             }
         }
@@ -99,6 +183,7 @@ publishing {
         }
     }
 }
+
 def customizePom(pom) {
     pom.withXml {
         def root = asNode()
@@ -136,18 +221,33 @@ def customizePom(pom) {
                 developer {
                     name "Matthew Bellinger"
                 }
+                developer {
+                    name "MNG"
+                    roles {
+                        role "Update and Improvements like added checks, examples and increased usability"
+                    }
+                }
             }
         }
     }
 }
+
+// Check if signing properties are defined in gradle.properties
+if (doSigning) {
+    signing {
+        sign configurations.archives
+    }
+
+    tasks.named 'publishMavenJavaPublicationToMavenLocal' {
+        dependsOn project.tasks.named 'signArchives'
+    }
+    tasks.named 'publishMavenJavaPublicationToMavenRepository' {
+        dependsOn project.tasks.named 'signArchives'
+    }
+}
+
 model {
     tasks.generatePomFileForMavenJavaPublication {
-        destination = file("$buildDir/generated-pom.xml")
-    }
-    tasks.publishMavenJavaPublicationToMavenLocal {
-        dependsOn project.tasks.signArchives
-    }
-    tasks.publishMavenJavaPublicationToMavenRepository {
-        dependsOn project.tasks.signArchives
+        destination = layout.buildDirectory.file("generated-pom.xml")
     }
 }

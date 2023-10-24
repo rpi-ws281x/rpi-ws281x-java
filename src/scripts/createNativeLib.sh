@@ -10,6 +10,8 @@
 # Configuration
 # *********************************************************************************************************************
 
+#This is needed since somehow the swig command isn't being found on my RasPi 0 otherwise
+PATH=$PATH:/usr/local/bin/
 # This defines the JDK to use for JNI header files; automatically picks first dir using ls
 JDK_PATH="/usr/lib/jvm"
 JDK_DIR=$(ls "${JDK_PATH}" | head -n 1)
@@ -63,17 +65,20 @@ function programInstalled
 # *********************************************************************************************************************
 # Main
 # *********************************************************************************************************************
-
-echo "NeoPixel ws281x Library Compiler"
-echo "****************************************************"
+echo "**********************[createNativeLib.sh]******************************"
+echo "*                                                                      *"
+echo "*               NeoPixel ws281x Library Compiler                       *"
+echo "*                                                                      *"
+echo "************************************************************************"
 
 # Check dependencies installed
 set -e
-programInstalled "swig -version" "SWIG Version" "Error - SWIG is not installed, cannot continue!" "Check - SWIG installed..."
-programInstalled "gcc --version" "free software" "Error - GCC is not installed, cannot continue!" "Check - GCC installed..."
-programInstalled "ar --version" "free software" "Error - AR is not installed, cannot continue!" "Check - AR installed..."
-programInstalled "ranlib -v" "free software" "Error - ranlib is not installed, cannot continue!" "Check - ranlib installed..."
-programInstalled "git --version" "git version" "Error - git is not installed, cannot continue!" "Check - git installed..."
+programInstalled "swig -version" "SWIG Version" "Error - SWIG is not installed, cannot continue! Check out the tutorial in this repo's README!" "✅ - SWIG installed..."
+programInstalled "java --version" "Runtime Environment" "Error  -  Java is not installed, cannot continue! (SWIG won't work either w/out java btw... Check out the tutorial in the README!)"
+programInstalled "gcc --version" "free software" "Error - GCC is not installed, cannot continue!" "✅ - GCC installed..."
+programInstalled "ar --version" "free software" "Error - AR is not installed, cannot continue!" "✅ - AR installed..."
+programInstalled "ranlib -v" "free software" "Error - ranlib is not installed, cannot continue!" "✅ - ranlib installed..."
+programInstalled "git --version" "git version" "Error - git is not installed, cannot continue!" "✅ - git installed..."
 set +e
 
 # Clean workspace
@@ -84,10 +89,10 @@ rm -rf build
 echo "Cloning rpi_ws281x repository..."
 git clone https://github.com/jgarff/rpi_ws281x.git ${NATIVE_SRC}
 
-# At the time of this writing this repository does not tag versions, so checking out at a specific commit so we build a consistent library
+# checking out v1.0.0 so we build a consistent library
 echo "Checking out specific revision..."
 pushd ${NATIVE_SRC}
-git checkout 6851d9fb090f8a4703d2ceac97da2de617b09e8d
+git checkout v1.0.0
 popd
 
 # Create all the required dirs
