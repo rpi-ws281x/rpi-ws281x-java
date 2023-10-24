@@ -265,6 +265,7 @@ public class Ws281xLedStrip implements LedStrip {
     }
 
     public void setBrightness( int brightness ) {
+        this.brightness = brightness;
         currentChannel.setBrightness( (short) brightness );
     }
 
