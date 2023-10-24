@@ -9,8 +9,10 @@ Successfully tested on a RaspberryPi 3B+
 2. run `./gradlew installSwigOnPi`
 3. run `./gradlew buildNativeOnPi`
 4. run `./gradlew publishToMavenLocal -PtargetComp=11`
-5. run `./gradlew runExample -PtargetComp=11 -PamountOfLeds=16` to test.<br> Set the amount of LEDs you want to test with the `-PamountOfLeds` property. <br>
-Set `-PtargetComp=11` if the java version on your raspi is 11 (often true because it's the default-jdk). Otherwise it is assumed that the java version on your raspi matches the one gradle uses.
+5. run `./gradlew runExample -PtargetComp=11 -PamountOfLeds=16 -Pexample=RainbowExample` to test.<br>
+set `-PamountOfLeds` to the amount of LEDs on the strip. <br>
+set `-Pexample` to the name of the example-class (in src/examples) you want to execute.<br>
+set `-PtargetComp=11` if the java version on your raspi is 11 (often true because it's the default-jdk). Otherwise it is assumed that the java version on your raspi matches the one gradle uses. Only 11 can be passed currently.
 7. kill runing example java app by ssh-ing into your raspi and using `htop` to send a `SIGINT` signal to the process.
 
 ## To build on a raspberry pi
