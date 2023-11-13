@@ -5,17 +5,28 @@ plugins {
     id 'maven-publish'
     id 'signing'
 }
+
+def whichTarget = project.findProperty("targetComp");
+
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
+    if (whichTarget == "11") {
+        println("SETTING TARGET & SOURCE COMPATIBILITY JAVA VERSION TO 11!!!")
+        setSourceCompatibility JavaVersion.VERSION_11
+        setTargetCompatibility JavaVersion.VERSION_11
+    } else {
+        setSourceCompatibility JavaVersion.VERSION_17
+    }
+    withJavadocJar()
+    withSourcesJar()
 }
 
 remotes {
     rasPi {
         host = project.findProperty("RasPiHost")
         user = project.findProperty("RasPiUser")
-        if(project.hasProperty("RasPiKey")){
+        if (project.hasProperty("RasPiKey")) {
             identity = file(project.findProperty("RasPiKey"))
-        }else {
+        } else {
             password = project.findProperty("RasPiPassword")
         }
         fileTransfer = "scp"
@@ -41,6 +52,9 @@ sourceSets {
             srcDirs('build/nativeLib/')
         }
     }
+    examples {
+        java
+    }
 }
 
 jar {
@@ -48,6 +62,7 @@ jar {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -55,17 +70,22 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:1.7.32'
 
     testImplementation 'junit:junit:4.13.1'
+
+    //examplesImplementation 'com.github.mbelling:rpi-ws281x-java:2.0.0-SNAPSHOT' //doesn't work for some reason 🙄
+    examplesImplementation files("${System.properties['user.home']}/.m2/repository/com/github/mbelling/rpi-ws281x-java/2.0.0-SNAPSHOT/rpi-ws281x-java-2.0.0-SNAPSHOT.jar")
+    examplesImplementation 'org.slf4j:slf4j-api:1.7.32'
+    examplesImplementation 'org.slf4j:slf4j-simple:1.7.32'
 }
 
-tasks.register('installSwigOnPi'){
+tasks.register('installSwigOnPi') {
     description = 'try to install swig on the raspi'
     def swigDir = "~/rpi_ws281x_build/swigInstall"
-    doLast{
-        ssh.run{
-            session(remotes.rasPi){
+    doLast {
+        ssh.run {
+            session(remotes.rasPi) {
                 println("ATEMPTING TO INSTALL SWIG")
                 execute "mkdir -p $swigDir"
-                put (from:'install-swig-on-pi.sh', into: swigDir)
+                put(from: 'install-swig-on-pi.sh', into: swigDir)
                 execute "cd $swigDir; chmod +x install-swig-on-pi.sh"
                 execute("cd $swigDir; bash install-swig-on-pi.sh 1>&2") //re-route stdout to stderr so the user sees all the log output
                 println("SUCCESS!")
@@ -102,19 +122,33 @@ tasks.register('buildNativeOnPi') {
 
     }
 }
-tasks.register('finalizeBuildNative') {
-    doLast {
-        ssh.run {
-            session(remotes.rasPi) {
-
-            }
-        }
-
+tasks.register('uberExamplesJar', Jar) {
+    archiveClassifier = 'uberExamples'
+    def exeClass = project.findProperty("example")
+    manifest {
+        attributes 'Main-Class': "com.github.mng.ws281x.examples.$exeClass"
+    }
+    from sourceSets.examples.output
+    dependsOn configurations.examplesRuntimeClasspath
+    from {
+        configurations.examplesRuntimeClasspath.findAll({ it.name.endsWith("jar") }).collect { zipTree(it) }
     }
 }
 
-tasks.buildNativeOnPi.finalizedBy('finalizeBuildNative')
+def amountOfLeds = project.findProperty("amountOfLeds")
+tasks.register("runExample"){
+    doLast {
+        ssh.run {
+            session(remotes.rasPi) {
+                put from: './build/libs/rpi-ws281x-java-2.0.0-SNAPSHOT-uberExamples.jar', into: remoteBuildDir
+                executeSudo "java -jar $remoteBuildDir/rpi-ws281x-java-2.0.0-SNAPSHOT-uberExamples.jar $amountOfLeds 1>&2" //re-route stdout to stderr so the user sees all the log output
 
+            }
+        }
+    }
+}
+
+runExample.dependsOn uberExamplesJar
 
 tasks.register('checkSharedLibrary') {
     description = "Check if the shared library exists in the desired location"
@@ -129,11 +163,6 @@ tasks.register('checkSharedLibrary') {
 }
 
 compileJava.dependsOn checkSharedLibrary
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
 
 publishing {
     publications {
